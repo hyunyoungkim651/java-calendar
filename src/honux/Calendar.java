@@ -1,20 +1,43 @@
 package honux;
 
 
+import org.w3c.dom.CDATASection;
+
+import java.io.*;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Scanner;
 
 public class Calendar {
     private static final int[] MAX_DAYS = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     private static final int[] LEEP_MAX_DAYS = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     private static final String[] WEEKDAY = {"SU", "MO", "Tu", "WE", "TH", "FR", "SA"};
-
-    private HashMap<Date, String> planMap;
+    private static final String SAVE_FILE = "calendar.dat";
+    private HashMap<Date, PlanItem> planMap;
 
     public Calendar() {
-        planMap = new HashMap<Date, String>();
+        planMap = new HashMap<Date, PlanItem>();
+        File f = new File(SAVE_FILE);
+        if (!f.exists()) {
+            return;
+        }
+        try {
+            Scanner s = new Scanner(f);
+            while (s.hasNext()) {
+                String line = s.nextLine();
+                String[] words = line.split(",");
+                String date = words[0];
+                String detail = words[1].replaceAll("\"", "");
+                System.out.println(date + ":" + detail);
+                PlanItem p = new PlanItem(date, detail);
+                planMap.put(p.getDate(), p);
+            }
+            s.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
     }
 
 
@@ -24,14 +47,23 @@ public class Calendar {
      * @param plan
      */
     public void registerPlan(String strdate, String plan) throws ParseException {
-        Date date1 = new SimpleDateFormat("yyyy-MM-dd").parse(strdate);
-        planMap.put(date1, plan);
+        PlanItem p = new PlanItem(strdate, plan);
+        planMap.put(p.getDate(), p);
+
+        File f = new File(SAVE_FILE);
+        String item = p.saveString();
+        try {
+            FileWriter fileWriter = new FileWriter(f, true);
+            fileWriter.write(item);
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public String searchPlan(String strDate) throws ParseException {
-        Date date1 = new SimpleDateFormat("yyyy-MM-dd").parse(strDate);
-        String plan = planMap.get(date1);
-        return plan;
+    public PlanItem searchPlan(String strDate) {
+        Date date1 = PlanItem.getDatefromString(strDate);
+        return planMap.get(date1);
     }
 
     private int getWeekDay(int year, int month, int day) {
